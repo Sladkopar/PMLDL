@@ -1,10 +1,9 @@
-# Test the bot
-
-TOKEN = "your_token"
-
 import logging
-from telegram import ForceReply, Update
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram import ForceReply, Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
+
+# Read token from token.txt
+TOKEN = open('token.txt').read().strip()
 
 # Enable logging
 logging.basicConfig(
@@ -25,9 +24,51 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     await update.message.reply_audio(audio=test_audio)
 
+    await update.message.reply_text("Type /help to see the list of commands.")
+
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Help!")
+    await show_main_buttons(update, edit=False)
+
+async def show_main_buttons(update: Update, edit: bool = True) -> None:
+    """Show main options with inline buttons."""
+    keyboard = [
+        [
+            InlineKeyboardButton("Add preferences", callback_data='add_preferences'),
+            InlineKeyboardButton("My preferences", callback_data='my_preferences'),
+            InlineKeyboardButton("Get recommendations", callback_data='get_recommendations'),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    # Check if editing an existing message or sending a new one
+    if edit:
+        await update.callback_query.edit_message_text("Please choose an option:", reply_markup=reply_markup)
+    else:
+        await update.message.reply_text("Please choose an option:", reply_markup=reply_markup)
+
+
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle button clicks and show the 'Back' button."""
+    query = update.callback_query
+    await query.answer()
+
+    # Define the 'Back' button
+    back_button = InlineKeyboardMarkup([
+        [InlineKeyboardButton("Back", callback_data='back')]
+    ])
+
+    # Show a response (will be thought over and changed)
+    if query.data == 'add_preferences':
+        await query.edit_message_text("Functionality for 'Add preferences' will be added soon.", reply_markup=back_button)
+    elif query.data == 'my_preferences':
+        await query.edit_message_text("Functionality for 'My preferences' will be added soon.", reply_markup=back_button)
+    elif query.data == 'get_recommendations':
+        await query.edit_message_text("Functionality for 'Get recommendations' will be added soon.", reply_markup=back_button)
+    elif query.data == 'back':
+        # Show main buttons again when "Back" is clicked
+        await show_main_buttons(update, edit=True)
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -61,7 +102,8 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
 
-    application.add_handler(MessageHandler(filters.ALL, handle_message))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(CallbackQueryHandler(button_handler))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
