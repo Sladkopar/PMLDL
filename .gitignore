@@ -1,5 +1,3 @@
 code/tg_bot/token.txt
-data/preprocessed_audio_features_clusters.csv
-data/track_features.csv
 code/__pycache__
 code/.cache
