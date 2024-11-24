@@ -1,26 +1,42 @@
 # Import necessary dependencies
 import pandas as pd
-import seaborn as sns
-import plotly.express as px
-import matplotlib.pyplot as plt
 import pickle
 
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
 
 import numpy as np
 
 from const import *
 
-# TODO: Write documentation
-
 class TrackPreprocessor():
+    """
+    Preprocess given track using K-Means clustering and Column Transformer.
+    
+    Attributes
+    ----------
+    `k_means`: KMeans
+        Clustering model.
+    `column_transformer`: ColumnTransformer
+        Standardizes specific track features.
+    """
     
     def __init__(self, pkl_path: str = None) -> None:
+        """
+        Initialize `TrackPreprocessor` object.
+        
+        Parameters
+        ----------
+        `pkl_path`: str = None
+            Path to ".pkl" K-Means model and Column Transformer.
+        
+        Returns
+        ----------
+        `self`: TrackPreprocessor
+            TrackPreprocessor class object.
+        """
         
         assert pkl_path is not None, (
             '`pkl_path` must be specified.'
@@ -32,7 +48,20 @@ class TrackPreprocessor():
         self.k_means = tools_dict.get('k_means')
         self.column_transformer = tools_dict.get('column_transformer')
         
-    def preprocess(self, track_data: dict = None):
+    def preprocess(self, track_data: dict = None) -> pd.DataFrame:
+        """
+        Preprocess features of given track.
+        
+        Parameters
+        ----------
+        `track_data`: dict = None
+            Dictionary with all features of given track.
+        
+        Returns
+        ----------
+        `preprocessed_target_track_df`: pd.DataFrame
+            Data frame with all preprocessed track features.
+        """
         
         assert track_data is not None, (
             '`track_data` must be specified.'
