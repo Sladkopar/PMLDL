@@ -6,11 +6,26 @@ from search import TrackSearchEngine
 from const import *
 from preprocessor import TrackPreprocessor
 
-# TODO: Write documentation
-# TODO: Handle track duplicates
-
 class RecSys():
-
+    """
+    Recommend `k` tracks based on given track.
+    
+    Attributes
+    ----------
+    `client_id`: str = None
+        Client ID from Spotify.
+    `client_secret`: str = None
+        Client Secret from Spotify.
+    `pkl_path`: str = '../models/k_means.pkl'
+        Path to ".pkl" K-Means model and Column Transformer.
+    `db_path`: str = '../data/preprocessed_audio_features_clusters.csv'
+        Path to ".csv" file that contains all preprocessed tracks.
+    `track_preprocessor`: TrackPreprocessor
+        Module for preprocessing new tracks.
+    `search_engine`: TrackSearchEngine
+        Search engine to retrieve features for new tracks based on Spotify API.
+    """
+    
     def __init__(
         self,
         client_id: str = None,
@@ -18,6 +33,25 @@ class RecSys():
         pkl_path: str = '../models/k_means.pkl',
         db_path: str = '../data/preprocessed_audio_features_clusters.csv'
     ) -> None:
+        """
+        Initialize `RecSys` class.
+        
+        Parameters
+        ----------
+        `client_id`: str = None
+            Client ID from Spotify.
+        `client_secret`: str = None
+            Client Secret from Spotify.
+        `pkl_path`: str = '../models/k_means.pkl'
+            Path to ".pkl" K-Means model and Column Transformer.
+        `db_path`: str = '../data/preprocessed_audio_features_clusters.csv'
+            Path to ".csv" file that contains all preprocessed tracks.
+        
+        Returns
+        ----------
+        `self`: RecSys
+            RecSys class object.
+        """
         
         assert client_id is not None and client_secret is not None, (
             "`client_id`, and `client_secret` must be specified."
@@ -32,7 +66,22 @@ class RecSys():
             client_secret=client_secret
         )
         
-    def recommend(self, track_name: str = None, top_k: int = 5) -> None:
+    def recommend(self, track_name: str = None, top_k: int = 5) -> pd.DataFrame:
+        """
+        Recommend `top_k` tracks from `self.db_path` using K-Means clustering.
+        
+        Parameters
+        ----------
+        `track_name`: str = None
+            The name of the track.
+        `top_k`: int = 5
+            The amount of most similar tracks to retrieve.
+        
+        Returns
+        ----------
+        `result`: pd.DataFrame
+            A Data frame that contains `name`, `album`, `artists`, and `track_number` of retrieved tracks.
+        """
         
         assert track_name is not None, (
             "`track_name` must be specified."
