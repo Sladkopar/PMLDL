@@ -1,9 +1,16 @@
 import logging
 from telegram import ForceReply, Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
+from recsys import RecSys
 
-# Read token from token.txt
-TOKEN = open('token.txt').read().strip()
+
+# Read token and recommendation system credentials
+TOKEN = open('tg_bot/token.txt').read().strip()
+CLIENT_ID = open('tg_bot/clientID.txt').read().strip()
+CLIENT_SECRET = open('tg_bot/clientSecret.txt').read().strip()
+
+# Initialize recommendation system
+# rec_sys = RecSys(client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
 
 # Enable logging
 logging.basicConfig(
@@ -11,24 +18,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Test file
-test_audio = 'test_music.mp3'
+# Define a state to track user input
+GET_RECOMMENDATIONS_STATE = {}
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     await update.message.reply_html(
-        rf"Hi {user.mention_html()}! Please, check out this song!",
-        reply_markup=ForceReply(selective=True),
+        rf"Hi {user.mention_html()}! Use /help to see options."
     )
-
-    await update.message.reply_audio(audio=test_audio)
-
-    await update.message.reply_text("Type /help to see the list of commands.")
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Help!")
     await show_main_buttons(update, edit=False)
 
 async def show_main_buttons(update: Update, edit: bool = True) -> None:
@@ -50,7 +51,7 @@ async def show_main_buttons(update: Update, edit: bool = True) -> None:
 
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle button clicks and show the 'Back' button."""
+    """Handle button clicks"""
     query = update.callback_query
     await query.answer()
 
@@ -59,41 +60,44 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         [InlineKeyboardButton("Back", callback_data='back')]
     ])
 
-    # Show a response (will be thought over and changed)
-    if query.data == 'add_preferences':
-        await query.edit_message_text("Functionality for 'Add preferences' will be added soon.", reply_markup=back_button)
-    elif query.data == 'my_preferences':
-        await query.edit_message_text("Functionality for 'My preferences' will be added soon.", reply_markup=back_button)
-    elif query.data == 'get_recommendations':
-        await query.edit_message_text("Functionality for 'Get recommendations' will be added soon.", reply_markup=back_button)
+    if query.data == 'get_recommendations':
+        # Ask the user for the song name
+        user_id = query.from_user.id
+        GET_RECOMMENDATIONS_STATE[user_id] = True
+        await query.edit_message_text("Please send me the name of a song to get recommendations.")
     elif query.data == 'back':
-        # Show main buttons again when "Back" is clicked
         await show_main_buttons(update, edit=True)
+    else:
+        await query.edit_message_text("This functionality is under development.", reply_markup=back_button)
+
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user = update.effective_user
-    message = update.message
+    user_id = update.message.from_user.id
+    message_text = update.message.text
 
-    # Log the message details: time, user, and message content
-    logger.info(
-        f"Message received at {message.date} from {user.username} ({user.id}): {message.text if message.text else '[Non-text message]'}")
+    if user_id in GET_RECOMMENDATIONS_STATE and GET_RECOMMENDATIONS_STATE[user_id]:
+        # Reset the state
+        GET_RECOMMENDATIONS_STATE.pop(user_id)
 
-    # Check message types and respond accordingly
-    if message.text:
-        await message.reply_text(message.text)
-    elif message.photo:
-        await message.reply_photo(photo=message.photo[-1].file_id)  # Send back the largest photo
-    elif message.sticker:
-        await message.reply_sticker(sticker=message.sticker.file_id)
-    elif message.document:
-        await message.reply_document(document=message.document.file_id)
-    elif message.video:
-        await message.reply_video(video=message.video.file_id)
-    elif message.audio:
-        await message.reply_audio(audio=message.audio.file_id)
+        # Fetch recommendations
+        try:
+            recommendations = rec_sys.recommend(track_name=message_text, top_k=5)
+            if recommendations.empty:
+                await update.message.reply_text("No recommendations found for the provided song.")
+            else:
+                # Format recommendations
+                recommendation_text = "\n\n".join(
+                    f"🎵 *{row['name']}*\n   💿 Album: {row['album']}\n   🎤 Artists: {', '.join(row['artists'])}\n   🔢 Track Number: {row['track_number']}"
+                    for _, row in recommendations.iterrows()
+                )
+                await update.message.reply_text(f"Here are your recommendations:\n\n{recommendation_text}", parse_mode="Markdown")
+        except Exception as e:
+            logger.error(f"Error fetching recommendations: {e}")
+            await update.message.reply_text("An error occurred while fetching recommendations. Please try again.")
+
     else:
-        await message.reply_text("Unsupported message type.")
+        await update.message.reply_text("I didn't understand that. Use /help to see available options.")
 
 
 def main() -> None:
