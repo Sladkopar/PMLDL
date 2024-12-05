@@ -5,12 +5,12 @@ from recsys import RecSys
 
 
 # Read token and recommendation system credentials
-TOKEN = open('tg_bot/token.txt').read().strip()
-CLIENT_ID = open('tg_bot/clientID.txt').read().strip()
-CLIENT_SECRET = open('tg_bot/clientSecret.txt').read().strip()
+TOKEN = open('token.txt').read().strip()
+CLIENT_ID = open('clientID.txt').read().strip()
+CLIENT_SECRET = open('clientSecret.txt').read().strip()
 
 # Initialize recommendation system
-# rec_sys = RecSys(client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
+rec_sys = RecSys(client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
 
 # Enable logging
 logging.basicConfig(
